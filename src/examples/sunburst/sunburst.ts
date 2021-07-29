@@ -23,6 +23,8 @@ interface SunburstVisualization extends VisualizationDefinition {
   svg?: any,
 }
 
+
+
 // recursively create children array
 function descend(obj: any, depth: number = 0) {
   const arr: any[] = []
@@ -44,6 +46,8 @@ function descend(obj: any, depth: number = 0) {
   return arr
 }
 
+let totalSize = 0
+
 function burrow(table: Row[], config: VisConfig) {
   // create nested object
   const obj: any = {}
@@ -61,6 +65,8 @@ function burrow(table: Row[], config: VisConfig) {
       layer = layer[key]
     })
     layer.__data = row
+
+    console.log(layer.__data)
   })
 
   // use descend to create nested children arrays
@@ -122,7 +128,7 @@ const vis: SunburstVisualization = {
     })) return
 
     const width = element.clientWidth
-    const height = element.clientHeight
+    const height = element.clientHeight - 15
     const radius = Math.min(width, height) / 2 - 8
 
     const dimensions = queryResponse.fields.dimension_like
@@ -149,21 +155,136 @@ const vis: SunburstVisualization = {
       .outerRadius((d: any) => Math.sqrt(d.y1))
     )
 
-    const svg = (
+    const main = (
       this.svg
       .html('')
       .attr('width', '100%')
       .attr('height', '100%')
-      .append('g')
-      .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')')
     )
 
-    const label = svg.append('text').attr('y', -height / 2 + 20).attr('x', -width / 2 + 20)
+    const svg = (
+      main
+      .append('g')
+      .attr('transform', 'translate(' + width / 2 + ',' + ((height / 2) + 25) + ')')
+    )
+
+
+    // create and position breadcrumbs container and svg
+
+    const breadcrumbs =
+    main
+    .append("g")
+    .attr("x", '10')
+    .attr("y", '10')
+
+    var b = {
+      w: 60,
+      h: 30,
+      s: 3,
+      t: 10
+    };
+
+    function breadcrumbPoints(d:any, i:any) {
+      const l = (d.data.name.length * 8) + b.t - 5
+      var points = [];
+      points.push("0,0");
+      points.push(l + ",0");
+      points.push(l+ b.t + "," + (b.h / 2));
+      points.push(l + "," + b.h);
+      points.push("0," + b.h);
+  
+      if (i > 0) { // Leftmost breadcrumb; don't include 6th vertex.
+        points.push(b.t + "," + (b.h / 2));
+      }
+      return points.join(" ");
+    }
+
+    const label = svg
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("fill", "#888")
+      .style("visibility", "hidden");
+
+    label
+      .append("tspan")
+      .attr("class", "percentage")
+      .attr("x", 0)
+      .attr("y", 25)
+      .attr("dy", "-0.1em")
+      .attr("font-size", "3em")
+      .text("");
+
+    function updateBreadcrumbs(ancestors: any, percentageString: any) {
+      // Data join, where primary key = name + depth.
+      let w = 0
+      breadcrumbs.selectAll('g').remove()
+      breadcrumbs.selectAll('text').remove()
+
+      var g = breadcrumbs.selectAll("g")
+        .data(ancestors, function(d:any) {
+          return d;
+        })
+        .enter()
+        .append("g")
+        .attr("transform",function(d:any,i:any) {
+          const a = w
+          w = w + (d.data.name.length *8) + b.t
+          return 'translate(' + a + ',0)'
+        });
+  
+      // Add breadcrumb and label for entering nodes.
+      
+      //var breadcrumb = g.enter().append("g");
+
+      var lastCrumb = breadcrumbs.append("text").classed("lastCrumb", true);
+  
+      g
+        .append("polygon").classed("breadcrumbs-shape", true)
+        .attr("points", breadcrumbPoints)
+        .attr('fill', (d: any) => {
+          if (d.depth === 0) return 'none'
+          if (config.color_by === colorBy.NODE) {
+            return color(d.data.name)
+          } else {
+            return color(d.ancestors().map((p: any) => p.data.name).slice(-2, -1))
+          }
+        })
+  
+      g
+        .append("text").classed("breadcrumbs-text", true)
+        .attr("x", b.t + 5)
+        .attr("y", b.h / 2)
+        .attr("dy", "0.35em")
+        .attr("font-size", "12px")
+        //.attr("text-anchor", "middle")
+        .text(function(d:any) {
+          return d.data.name;
+        });
+
+      // Set position for entering and updating nodes.
+      // g.attr("transform", function(d:any, i:any) {
+      //   return "translate(" + i * (d.length * 10 + b.w + b.s) + ", 0)";
+      // });
+  
+      // Remove exiting nodes.
+      g.exit().remove();
+  
+      // Update percentage at the lastCrumb.
+      lastCrumb
+        .attr("x", (w + 35))
+        .attr("y", b.h / 2)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "middle")
+        .attr("fill", "black")
+        .attr("font-weight", 600)
+        .text(percentageString);
+    }
+
 
     const root = d3.hierarchy(burrow(data, config)).sum((d: any) => {
       return 'data' in d ? d.data[measure.name].value : 0
     })
-    partition(root)
+    const rp = partition(root)
 
     svg
     .selectAll('path')
@@ -190,7 +311,7 @@ const vis: SunburstVisualization = {
         event: event
       })
     })
-    .on('mouseenter', (d: any) => {
+    .on('mouseenter', function(d: any) {
       const ancestorText = (
         d.ancestors()
         .map((p: any) => p.data.name)
@@ -198,9 +319,19 @@ const vis: SunburstVisualization = {
         .reverse()
         .join('-')
       )
-      label.text(`${ancestorText}: ${format(d.value)}`)
+
+      const sequence = d.ancestors().map((p:any) => p).slice(0,-1).reverse()
+      //const percentage = ((100 * d.value) / root.value).toPrecision(3);
+      const percentage = format(d.value)
+      updateBreadcrumbs(sequence, format(d.value));
 
       const ancestors = d.ancestors()
+
+      label
+        .style("visibility", null)
+        .select(".percentage")
+        .text(percentage);
+
       svg
       .selectAll('path')
       .style('fill-opacity', (p: any) => {
@@ -208,10 +339,12 @@ const vis: SunburstVisualization = {
       })
     })
     .on('mouseleave', (d: any) => {
-      label.text('')
       svg
       .selectAll('path')
       .style('fill-opacity', (d: any) => 1 - d.depth * 0.15)
+
+      label.style("visibility", "hidden")
+      updateBreadcrumbs([], '');
     })
   }
 }

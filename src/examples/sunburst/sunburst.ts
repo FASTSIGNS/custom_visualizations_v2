@@ -23,8 +23,6 @@ interface SunburstVisualization extends VisualizationDefinition {
   svg?: any,
 }
 
-
-
 // recursively create children array
 function descend(obj: any, depth: number = 0) {
   const arr: any[] = []
@@ -74,7 +72,8 @@ function burrow(table: Row[], config: VisConfig) {
   return {
     name: 'root',
     children: descend(obj, 1),
-    depth: 0
+    depth: 0,
+    value: 0
   }
 }
 
@@ -109,17 +108,24 @@ const vis: SunburstVisualization = {
       ],
       default: colorBy.ROOT
     },
+    show_percentage: {
+      type: 'boolean',
+      label: 'Percent on Hover',
+      default: true
+    },
     show_null_points: {
       type: 'boolean',
       label: 'Plot Null Values',
       default: true
     }
   },
+
   // Set up the initial state of the visualization
   create(element, _config) {
     element.style.fontFamily = `"Courier New", "Mono", mono`
     this.svg = d3.select(element).append('svg')
   },
+
   // Render in response to the data or settings changing
   update(data, element, config, queryResponse) {
     if (!handleErrors(this, queryResponse, {
@@ -169,9 +175,7 @@ const vis: SunburstVisualization = {
       .attr('transform', 'translate(' + width / 2 + ',' + ((height / 2) + 25) + ')')
     )
 
-
     // create and position breadcrumbs container and svg
-
     const breadcrumbs =
     main
     .append("g")
@@ -182,11 +186,12 @@ const vis: SunburstVisualization = {
       w: 60,
       h: 30,
       s: 3,
-      t: 5
+      t: 10
     };
 
     function breadcrumbPoints(d:any, i:any) {
-      const l = (d.data.name.length * 8) + b.t - 5
+      // the 5 is important for proper spacing between polygons
+      const l = (d.data.name.length * 7.5) + b.t - 5
       var points = [];
       points.push("0,0");
       points.push(l + ",0");
@@ -261,11 +266,6 @@ const vis: SunburstVisualization = {
         .text(function(d:any) {
           return d.data.name;
         });
-
-      // Set position for entering and updating nodes.
-      // g.attr("transform", function(d:any, i:any) {
-      //   return "translate(" + i * (d.length * 10 + b.w + b.s) + ", 0)";
-      // });
   
       // Remove exiting nodes.
       g.exit().remove();
@@ -322,8 +322,8 @@ const vis: SunburstVisualization = {
       )
 
       const sequence = d.ancestors().map((p:any) => p).slice(0,-1).reverse()
-      //const percentage = ((100 * d.value) / root.value).toPrecision(3);
-      const percentage = format(d.value)
+      const percentage = root.value ? ((100 * d.value) / root.value ).toPrecision(3).toString()+'%': null;
+      // const percentage = format(d.value)
       updateBreadcrumbs(sequence, format(d.value));
 
       const ancestors = d.ancestors()
@@ -331,7 +331,7 @@ const vis: SunburstVisualization = {
       label
         .style("visibility", null)
         .select(".percentage")
-        .text(percentage);
+        .text( config.show_percentage?  percentage: format(d.value));
 
       svg
       .selectAll('path')

@@ -46,6 +46,7 @@ function descend(obj: any, depth: number = 0) {
   return arr
 }
 
+//track total TODO
 let totalSize = 0
 
 function burrow(table: Row[], config: VisConfig) {

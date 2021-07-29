@@ -117,7 +117,7 @@ const vis: SunburstVisualization = {
   },
   // Set up the initial state of the visualization
   create(element, _config) {
-    element.style.fontFamily = `"Open Sans", "Helvetica", sans-serif`
+    element.style.fontFamily = `"Courier New", "Mono", mono`
     this.svg = d3.select(element).append('svg')
   },
   // Render in response to the data or settings changing
@@ -182,7 +182,7 @@ const vis: SunburstVisualization = {
       w: 60,
       h: 30,
       s: 3,
-      t: 10
+      t: 5
     };
 
     function breadcrumbPoints(d:any, i:any) {

@@ -183,25 +183,23 @@ const vis: SunburstVisualization = {
     .attr("y", '10')
 
     var b = {
-      w: 60,
+      w: 400,
       h: 30,
       s: 3,
       t: 10
     };
 
+    // returns points, which combined create a shape to hold the polygon label
     function breadcrumbPoints(d:any, i:any) {
-      // the 5 is important for proper spacing between polygons
-      const l = (d.data.name.length * 7.5) + b.t - 5
       var points = [];
       points.push("0,0");
-      points.push(l + ",0");
-      points.push(l+ b.t + "," + (b.h / 2));
-      points.push(l + "," + b.h);
+      points.push(b.w + ",0");
+      points.push(b.w + "," + b.h);
+      points.push(b.w*.6 + "," + b.h);
+      points.push(b.w/2 + "," + (b.h + b.s));
+      points.push(b.w*.4 + "," + b.h);
       points.push("0," + b.h);
-  
-      if (i > 0) { // Leftmost breadcrumb; don't include 6th vertex.
-        points.push(b.t + "," + (b.h / 2));
-      }
+
       return points.join(" ");
     }
 
@@ -222,10 +220,11 @@ const vis: SunburstVisualization = {
 
     function updateBreadcrumbs(ancestors: any, percentageString: any) {
       // Data join, where primary key = name + depth.
-      let w = 0
+      let h = 0
       breadcrumbs.selectAll('g').remove()
       breadcrumbs.selectAll('text').remove()
 
+      // shift each breadcrumb location appropriately
       var g = breadcrumbs.selectAll("g")
         .data(ancestors, function(d:any) {
           return d;
@@ -233,15 +232,12 @@ const vis: SunburstVisualization = {
         .enter()
         .append("g")
         .attr("transform",function(d:any,i:any) {
-          const a = w
-          w = w + (d.data.name.length *7.5) + b.t
-          return 'translate(' + a + ',0)'
+          const a = h
+          h = h + b.h + b.s
+          return 'translate(0,'+ h +')'
         });
   
       // Add breadcrumb and label for entering nodes.
-      
-      //var breadcrumb = g.enter().append("g");
-
       var lastCrumb = breadcrumbs.append("text").classed("lastCrumb", true);
   
       g
@@ -264,21 +260,21 @@ const vis: SunburstVisualization = {
         .attr("font-size", "12px")
         .attr("font-weight", "bold")
         .text(function(d:any) {
-          return d.data.name;
+          return d.data.name.length<= 48? d.data.name: d.data.name.substr(0,47) + '...';
         });
   
       // Remove exiting nodes.
       g.exit().remove();
   
       // Update percentage at the lastCrumb.
-      lastCrumb
-        .attr("x", (w + 35))
-        .attr("y", b.h / 2)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", "middle")
-        .attr("fill", "black")
-        .attr("font-weight", "bold")
-        .text(percentageString);
+      // lastCrumb
+      //   .attr("x", (w + 35))
+      //   .attr("y", b.h / 2)
+      //   .attr("dy", "0.35em")
+      //   .attr("text-anchor", "middle")
+      //   .attr("fill", "black")
+      //   .attr("font-weight", "bold")
+      //   .text(percentageString);
     }
 
 

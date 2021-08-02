@@ -123,6 +123,7 @@ const vis: SunburstVisualization = {
   // Set up the initial state of the visualization
   create(element, _config) {
     element.style.fontFamily = `"Courier New", "Mono", mono`
+
     this.svg = d3.select(element).append('svg')
   },
 
@@ -185,7 +186,7 @@ const vis: SunburstVisualization = {
     var b = {
       w: 400,
       h: 30,
-      s: 3,
+      s: 10,
       t: 10
     };
 
@@ -195,9 +196,9 @@ const vis: SunburstVisualization = {
       points.push("0,0");
       points.push(b.w + ",0");
       points.push(b.w + "," + b.h);
-      points.push(b.w*.6 + "," + b.h);
+      points.push(b.w*.52 + "," + b.h);
       points.push(b.w/2 + "," + (b.h + b.s));
-      points.push(b.w*.4 + "," + b.h);
+      points.push(b.w*.48 + "," + b.h);
       points.push("0," + b.h);
 
       return points.join(" ");
@@ -233,7 +234,7 @@ const vis: SunburstVisualization = {
         .append("g")
         .attr("transform",function(d:any,i:any) {
           const a = h
-          h = h + b.h + b.s
+          h = h + b.h + b.s - 2
           return 'translate(0,'+ h +')'
         });
   
@@ -243,6 +244,9 @@ const vis: SunburstVisualization = {
       g
         .append("polygon").classed("breadcrumbs-shape", true)
         .attr("points", breadcrumbPoints)
+        .attr("stroke", "#888")
+        .attr("stroke-width", 1)
+
         .attr('fill', (d: any) => {
           if (d.depth === 0) return 'none'
           if (config.color_by === colorBy.NODE) {
@@ -254,8 +258,9 @@ const vis: SunburstVisualization = {
   
       g
         .append("text").classed("breadcrumbs-text", true)
-        .attr("x", b.t + 5)
+        .attr("x", b.w/ 2)
         .attr("y", b.h / 2)
+        .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("font-size", "12px")
         .attr("font-weight", "bold")
@@ -266,15 +271,6 @@ const vis: SunburstVisualization = {
       // Remove exiting nodes.
       g.exit().remove();
   
-      // Update percentage at the lastCrumb.
-      // lastCrumb
-      //   .attr("x", (w + 35))
-      //   .attr("y", b.h / 2)
-      //   .attr("dy", "0.35em")
-      //   .attr("text-anchor", "middle")
-      //   .attr("fill", "black")
-      //   .attr("font-weight", "bold")
-      //   .text(percentageString);
     }
 
 

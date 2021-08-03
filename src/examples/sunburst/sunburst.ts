@@ -275,7 +275,7 @@ const vis: SunburstVisualization = {
         .attr("x", (w + 35))
         .attr("y", b.h / 2)
         .attr("dy", "0.35em")
-        .attr("text-anchor", "middle")
+        .attr("text-anchor", "right")
         .attr("fill", "black")
         .attr("font-weight", "bold")
         .text(percentageString);
